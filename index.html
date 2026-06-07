@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rotina ❄️">
+<title>Rotina Frozen ❄️</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:'Nunito',sans-serif}
+body{
+  background:linear-gradient(160deg,#0a1628 0%,#0d2347 40%,#0a3d6b 70%,#0e4d82 100%);
+  color:#e0f4ff;
+  position:relative;
+  overflow:hidden;
+}
+
+/* ===== SNOWFALL ===== */
+#snowCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+/* ===== LAYOUT ===== */
+#app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+.screen{display:none;flex:1;overflow-y:auto;padding-bottom:80px}
+.screen.active{display:flex;flex-direction:column}
+
+/* ===== GLASS CARD ===== */
+.glass{
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px;
+}
+.glass-strong{
+  background:rgba(255,255,255,0.13);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:20px;
+}
+
+/* ===== HEADER ===== */
+.app-header{
+  padding:env(safe-area-inset-top,16px) 16px 12px;
+  padding-top:max(env(safe-area-inset-top,16px),16px);
+  display:flex;align-items:center;gap:10px;
+  background:rgba(10,22,40,0.6);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  flex-shrink:0;
+}
+.header-title{font-family:'Fredoka One',cursive;font-size:22px;color:#a5d8ff;letter-spacing:0.5px}
+.header-snowflake{font-size:24px;animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== CHILD SELECTOR ===== */
+.child-selector{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.child-selector::-webkit-scrollbar{display:none}
+.child-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 14px;border-radius:16px;border:2px solid transparent;
+  background:rgba(255,255,255,0.06);cursor:pointer;transition:all .2s;flex-shrink:0;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#a0c4e8;
+}
+.child-btn.active{border-color:#4fc3f7;background:rgba(79,195,247,0.15);color:#fff}
+.child-btn .avatar{font-size:28px;line-height:1}
+.child-btn .name{white-space:nowrap}
+
+/* ===== PROGRESS BAR ===== */
+.progress-wrap{padding:0 16px 12px}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:6px;color:#a5d8ff}
+.progress-bar-bg{height:12px;border-radius:8px;background:rgba(255,255,255,0.1);overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#4fc3f7,#81d4fa,#b3e5fc);transition:width .5s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden}
+.progress-bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:shimmer 2s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* ===== PERIOD SECTION ===== */
+.period-title{
+  font-family:'Fredoka One',cursive;font-size:16px;
+  padding:4px 16px 8px;color:#81d4fa;letter-spacing:0.5px;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ===== TASK CARD ===== */
+.task-card{
+  margin:0 16px 10px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:all .25s;
+  -webkit-user-select:none;user-select:none;
+}
+.task-card:active{transform:scale(0.97)}
+.task-card.done{
+  background:rgba(79,195,247,0.08);
+  border-color:rgba(79,195,247,0.2);
+  opacity:0.6;
+}
+.task-card.done .task-name{text-decoration:line-through;color:#81d4fa}
+.task-emoji{font-size:32px;flex-shrink:0;transition:transform .3s}
+.task-card:active .task-emoji{transform:scale(1.3) rotate(10deg)}
+.task-info{flex:1}
+.task-name{font-weight:800;font-size:15px;color:#e0f4ff;margin-bottom:2px}
+.task-time{font-size:12px;color:#7ab8e0;font-weight:600}
+.task-check{
+  width:32px;height:32px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.25);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all .3s;flex-shrink:0;
+}
+.task-card.done .task-check{background:#4fc3f7;border-color:#4fc3f7;color:#0a1628}
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  padding:8px 16px max(env(safe-area-inset-bottom,8px),8px);
+  background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:flex;justify-content:space-around;z-index:100;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;padding:6px 12px;border-radius:12px;
+  color:#5a8db0;font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;
+  transition:all .2s;min-width:60px;
+}
+.nav-btn.active{color:#4fc3f7;background:rgba(79,195,247,0.12)}
+.nav-btn .nav-icon{font-size:22px;line-height:1}
+
+/* ===== CELEBRATION ===== */
+#celebration{
+  position:fixed;inset:0;z-index:200;display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(10,22,40,0.85);backdrop-filter:blur(8px);
+}
+#celebration.show{display:flex}
+.celebration-content{text-align:center;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+.celebration-emoji{font-size:80px;display:block;margin-bottom:16px;animation:bounce 1s ease infinite alternate}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-20px)}}
+.celebration-title{font-family:'Fredoka One',cursive;font-size:32px;color:#fff;margin-bottom:8px}
+.celebration-subtitle{font-size:16px;color:#a5d8ff;margin-bottom:24px}
+.btn-primary{
+  padding:14px 32px;border-radius:50px;border:none;
+  background:linear-gradient(135deg,#4fc3f7,#0288d1);
+  color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;
+  cursor:pointer;transition:transform .2s;
+}
+.btn-primary:active{transform:scale(0.95)}
+
+/* ===== CALENDAR SCREEN ===== */
+.calendar-wrap{padding:16px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-title{font-family:'Fredoka One',cursive;font-size:22px;color:#a5d8ff}
+.cal-nav{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px;padding:6px 14px;color:#a5d8ff;cursor:pointer;font-size:18px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-wd{text-align:center;font-size:11px;font-weight:800;color:#5a8db0;padding:4px 0}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day{
+  aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:12px;cursor:pointer;transition:all .2s;font-weight:700;font-size:14px;color:#a0c4e8;
+  position:relative;
+}
+.cal-day:empty{cursor:default}
+.cal-day.today{background:rgba(79,195,247,0.2);border:1.5px solid #4fc3f7;color:#fff}
+.cal-day.has-tasks::after{
+  content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;background:#4fc3f7;
+}
+.cal-day.full-done{background:rgba(79,195,247,0.25)}
+.cal-day.partial-done{background:rgba(79,195,247,0.1)}
+.cal-day:not(:empty):hover{background:rgba(255,255,255,0.1)}
+
+.cal-detail{margin-top:16px;padding:16px;border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1)}
+.cal-detail-title{font-family:'Fredoka One',cursive;font-size:17px;color:#81d4fa;margin-bottom:12px}
+.cal-task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cal-task-item:last-child{border-bottom:none}
+.cal-task-status{font-size:18px}
+.cal-task-label{font-size:14px;font-weight:600}
+
+/* ===== ACHIEVEMENTS SCREEN ===== */
+.achievements-wrap{padding:16px}
+.stars-header{
+  text-align:center;padding:20px;border-radius:20px;margin-bottom:16px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+}
+.stars-count{font-family:'Fredoka One',cursive;font-size:56px;color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,0.4)}
+.stars-label{font-size:14px;color:#a5d8ff;font-weight:700}
+
+.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.badge-card{
+  padding:14px 8px;border-radius:16px;text-align:center;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  transition:all .3s;
+}
+.badge-card.unlocked{background:rgba(79,195,247,0.12);border-color:rgba(79,195,247,0.3)}
+.badge-card.locked{opacity:0.4;filter:grayscale(1)}
+.badge-emoji{font-size:34px;display:block;margin-bottom:6px}
+.badge-name{font-size:11px;font-weight:800;color:#a5d8ff}
+.badge-desc{font-size:10px;color:#5a8db0;margin-top:2px}
+
+.chart-section{background:rgba(255,255,255,0.05);border-radius:20px;padding:16px;border:1px solid rgba(255,255,255,0.08)}
+.chart-title{font-family:'Fredoka One',cursive;font-size:16px;color:#81d4fa;margin-bottom:12px}
+.chart-bars{display:flex;align-items:flex-end;gap:8px;height:80px}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#4fc3f7,#0288d1);min-height:4px;transition:height .5s cubic-bezier(.34,1.56,.64,1)}
+.chart-bar-label{font-size:10px;color:#5a8db0;font-weight:700}
+
+/* ===== SETTINGS SCREEN ===== */
+.settings-wrap{padding:16px}
+.settings-section-title{
+  font-family:'Fredoka One',cursive;font-size:17px;color:#81d4fa;
+  margin:16px 0 10px;display:flex;align-items:center;gap:8px;
+}
+.child-setting-card{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;padding:14px 16px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+}
+.child-setting-avatar{font-size:28px}
+.child-setting-info{flex:1}
+.child-setting-name{font-weight:800;font-size:15px;color:#e0f4ff}
+.child-setting-color{font-size:12px;color:#5a8db0}
+.icon-btn{
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;padding:6px 10px;cursor:pointer;font-size:16px;transition:all .2s;
+}
+.icon-btn:active{transform:scale(0.9)}
+.btn-add{
+  width:100%;padding:12px;border-radius:14px;border:1.5px dashed rgba(79,195,247,0.4);
+  background:rgba(79,195,247,0.06);color:#4fc3f7;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:all .2s;
+  margin-bottom:4px;
+}
+.btn-add:active{transform:scale(0.97)}
+
+.task-setting-card{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;padding:12px 14px;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.task-setting-emoji{font-size:22px}
+.task-setting-info{flex:1}
+.task-setting-name{font-weight:700;font-size:14px;color:#e0f4ff}
+.task-setting-meta{font-size:11px;color:#5a8db0}
+.icon-btn-sm{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px;padding:4px 8px;cursor:pointer;font-size:14px;
+}
+
+/* ===== MODAL ===== */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:300;background:rgba(5,12,25,0.85);
+  backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;
+}
+.modal-backdrop.show{display:flex}
+.modal{
+  width:100%;max-width:430px;background:linear-gradient(160deg,#0e2340,#0a1628);
+  border-radius:24px 24px 0 0;border:1px solid rgba(255,255,255,0.15);
+  padding:20px 20px max(env(safe-area-inset-bottom,20px),20px);
+  animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
+  max-height:90vh;overflow-y:auto;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,0.2);margin:0 auto 16px}
+.modal-title{font-family:'Fredoka One',cursive;font-size:20px;color:#a5d8ff;margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:13px;font-weight:700;color:#7ab8e0;margin-bottom:6px;display:block}
+.form-input{
+  width:100%;padding:12px 14px;border-radius:14px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+  color:#e0f4ff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;
+  outline:none;transition:border-color .2s;
+}
+.form-input:focus{border-color:#4fc3f7}
+.form-input option{background:#0d2347;color:#e0f4ff}
+.emoji-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.emoji-opt{
+  font-size:28px;padding:6px;border-radius:10px;cursor:pointer;transition:all .2s;
+  border:2px solid transparent;
+}
+.emoji-opt.selected{border-color:#4fc3f7;background:rgba(79,195,247,0.15)}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.btn-modal-save{flex:1;padding:14px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#4fc3f7,#0288d1);
+  color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;cursor:pointer}
+.btn-modal-cancel{padding:14px 20px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);
+  background:transparent;color:#a0c4e8;font-family:'Nunito',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
+.btn-modal-delete{padding:14px 20px;border-radius:14px;border:1px solid rgba(255,80,80,0.3);
+  background:rgba(255,80,80,0.08);color:#ff8080;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
+
+/* ===== SNOW BURST ===== */
+.snow-burst{position:fixed;pointer-events:none;z-index:150;font-size:20px;animation:snowBurst 1s ease-out forwards}
+@keyframes snowBurst{
+  0%{transform:translate(0,0) scale(0);opacity:1}
+  100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}
+}
+
+/* ===== RESET BTN ===== */
+.btn-reset{
+  margin:8px 16px 0;padding:12px;border-radius:14px;border:none;width:calc(100% - 32px);
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+  color:#7ab8e0;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+}
+
+/* ===== AVATAR PICKER ===== */
+.avatar-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.avatar-opt{font-size:32px;padding:6px;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:all .2s}
+.avatar-opt.selected{border-color:#4fc3f7;background:rgba(79,195,247,0.15)}
+
+/* ===== COLOR PICKER ===== */
+.color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.color-opt{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s}
+.color-opt.selected{border-color:#fff;transform:scale(1.15)}
+
+/* ===== EMPTY STATE ===== */
+.empty-state{text-align:center;padding:40px 24px;color:#5a8db0}
+.empty-state .empty-emoji{font-size:48px;margin-bottom:12px;display:block}
+.empty-state p{font-size:14px;font-weight:600}
+
+/* ===== DATE STRIP ===== */
+.date-strip-wrap{padding:0 16px 12px;flex-shrink:0}
+.date-strip-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.date-strip-label{
+  font-family:'Fredoka One',cursive;font-size:16px;color:#a5d8ff;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:10px;transition:background .2s;
+}
+.date-strip-label:active{background:rgba(255,255,255,0.08)}
+.date-strip-label .ds-arrow{font-size:12px;opacity:0.6}
+.btn-today{
+  font-size:11px;font-weight:800;color:#4fc3f7;
+  background:rgba(79,195,247,0.1);border:1px solid rgba(79,195,247,0.25);
+  border-radius:8px;padding:4px 10px;cursor:pointer;transition:all .2s;
+}
+.btn-today:active{transform:scale(0.94)}
+.date-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.date-strip::-webkit-scrollbar{display:none}
+.date-day-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:44px;padding:8px 4px;border-radius:14px;cursor:pointer;
+  background:rgba(255,255,255,0.05);border:1.5px solid transparent;
+  transition:all .2s;flex-shrink:0;
+}
+.date-day-btn.active{
+  background:rgba(79,195,247,0.18);border-color:#4fc3f7;
+  box-shadow:0 0 10px rgba(79,195,247,0.25);
+}
+.date-day-btn.today-dot .ddb-num::after{
+  content:'';display:block;width:4px;height:4px;border-radius:50%;
+  background:#4fc3f7;margin:2px auto 0;
+}
+.ddb-wd{font-size:10px;font-weight:800;color:#5a8db0;text-transform:uppercase}
+.date-day-btn.active .ddb-wd{color:#81d4fa}
+.ddb-num{font-size:16px;font-weight:900;color:#a0c4e8;line-height:1}
+.date-day-btn.active .ddb-num{color:#fff}
+.ddb-dot{width:5px;height:5px;border-radius:50%;background:rgba(79,195,247,0.5)}
+.date-day-btn.active .ddb-dot{background:#4fc3f7}
+
+/* ===== MINI MONTH PICKER ===== */
+.month-picker-backdrop{
+  position:fixed;inset:0;z-index:250;background:rgba(5,12,25,0.7);
+  backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;
+  padding-top:80px;
+}
+.month-picker-backdrop.show{display:flex}
+.month-picker{
+  width:calc(100% - 32px);max-width:390px;
+  background:linear-gradient(160deg,#0e2340,#0a1628);
+  border-radius:24px;border:1px solid rgba(255,255,255,0.15);
+  padding:20px;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+.mp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mp-title{font-family:'Fredoka One',cursive;font-size:18px;color:#a5d8ff}
+.mp-nav{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;padding:5px 12px;color:#a5d8ff;cursor:pointer;font-size:16px}
+.mp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.mp-wd{text-align:center;font-size:10px;font-weight:800;color:#5a8db0;padding:3px 0}
+.mp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mp-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:#a0c4e8;
+  transition:all .15s;
+}
+.mp-day:empty{cursor:default}
+.mp-day.mp-today{background:rgba(79,195,247,0.15);border:1.5px solid #4fc3f7;color:#fff}
+.mp-day.mp-selected{background:#4fc3f7;color:#0a1628;font-weight:900}
+.mp-day:not(:empty):not(.mp-selected):hover{background:rgba(255,255,255,0.08)}
+.mp-day.mp-has-tasks::after{content:'·';display:block;font-size:16px;line-height:0;margin-top:2px;color:#4fc3f7;position:absolute}
+.mp-day{position:relative}
+
+/* ===== SCROLLBAR ===== */
+.screen::-webkit-scrollbar{width:4px}
+.screen::-webkit-scrollbar-track{background:transparent}
+.screen::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+
+/* ===== EVENTS ===== */
+.cal-day{position:relative}
+.cal-day .event-dot{
+  position:absolute;top:3px;right:3px;
+  width:7px;height:7px;border-radius:50%;
+  background:#ffd700;border:1.5px solid rgba(0,0,0,0.3);
+  box-shadow:0 0 5px #ffd70088;
+}
+.cal-detail-section{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08)}
+.cal-detail-section-title{font-size:12px;font-weight:800;color:#5a8db0;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.event-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:14px;margin-bottom:6px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;transition:background .2s;
+}
+.event-item:active{background:rgba(255,255,255,0.1)}
+.event-dot-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.event-item-info{flex:1}
+.event-item-title{font-size:14px;font-weight:700;color:#e0f4ff}
+.event-item-time{font-size:12px;color:#7ab8e0;margin-top:1px}
+.event-item-emoji{font-size:20px;flex-shrink:0}
+.btn-add-event{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:10px;border-radius:12px;border:1.5px dashed rgba(255,215,0,0.35);
+  background:rgba(255,215,0,0.05);color:#ffd700;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;
+  margin-top:8px;transition:all .2s;
+}
+.btn-add-event:active{transform:scale(0.97);background:rgba(255,215,0,0.1)}
+.event-color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.event-color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;flex-shrink:0}
+.event-color-opt.selected{border-color:#fff;transform:scale(1.18)}
+.event-emoji-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.event-emoji-opt{font-size:24px;padding:5px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .2s}
+.event-emoji-opt.selected{border-color:#4fc3f7;background:rgba(79,195,247,0.15)}
+</style>
+</head>
+<body>
+<canvas id="snowCanvas"></canvas>
+
+<div id="app">
+  <!-- HEADER -->
+  <header class="app-header">
+    <span class="header-snowflake">❄️</span>
+    <span class="header-title" id="headerTitle">Rotina da Laura</span>
+    <div style="margin-left:auto;font-size:13px;color:#5a8db0;font-weight:700" id="headerDate"></div>
+  </header>
+
+  <!-- ===== SCREEN: ROTINA ===== -->
+  <div class="screen active" id="screen-rotina">
+    <div class="child-selector" id="childSelector"></div>
+    <div class="date-strip-wrap">
+      <div class="date-strip-header">
+        <div class="date-strip-label" onclick="openMonthPicker()">
+          <span id="dsMonthLabel"></span>
+          <span class="ds-arrow">▾</span>
+        </div>
+        <button class="btn-today" onclick="jumpToToday()">Hoje</button>
+      </div>
+      <div class="date-strip" id="dateStrip"></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>❄️ Progresso do Dia</span>
+        <span id="progressText">0/0</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div id="taskList"></div>
+    <button class="btn-reset" id="btnReset">🔄 Recomeçar o Dia</button>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- MONTH PICKER -->
+  <div class="month-picker-backdrop" id="monthPickerBackdrop" onclick="closeMonthPicker(event)">
+    <div class="month-picker" onclick="event.stopPropagation()">
+      <div class="mp-header">
+        <button class="mp-nav" id="mpPrev">‹</button>
+        <div class="mp-title" id="mpTitle"></div>
+        <button class="mp-nav" id="mpNext">›</button>
+      </div>
+      <div class="mp-weekdays">
+        <div class="mp-wd">Dom</div><div class="mp-wd">Seg</div>
+        <div class="mp-wd">Ter</div><div class="mp-wd">Qua</div>
+        <div class="mp-wd">Qui</div><div class="mp-wd">Sex</div>
+        <div class="mp-wd">Sáb</div>
+      </div>
+      <div class="mp-days" id="mpDays"></div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: CALENDÁRIO ===== -->
+  <div class="screen" id="screen-calendario">
+    <div class="calendar-wrap">
+      <div class="cal-header">
+        <button class="cal-nav" id="calPrev">‹</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="cal-nav" id="calNext">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <div class="cal-wd">Dom</div><div class="cal-wd">Seg</div>
+        <div class="cal-wd">Ter</div><div class="cal-wd">Qua</div>
+        <div class="cal-wd">Qui</div><div class="cal-wd">Sex</div>
+        <div class="cal-wd">Sáb</div>
+      </div>
+      <div class="cal-days" id="calDays"></div>
+      <div class="cal-detail glass" id="calDetail" style="display:none;margin-top:16px;padding:16px">
+        <div class="cal-detail-title" id="calDetailTitle"></div>
+        <div id="calDetailList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: CONQUISTAS ===== -->
+  <div class="screen" id="screen-conquistas">
+    <div class="achievements-wrap">
+      <div class="stars-header glass">
+        <div class="stars-count" id="starsCount">⭐ 0</div>
+        <div class="stars-label">Estrelinhas conquistadas!</div>
+      </div>
+      <div class="settings-section-title">🏅 Emblemas de Arendelle</div>
+      <div class="badges-grid" id="badgesGrid"></div>
+      <div class="chart-section">
+        <div class="chart-title">📊 Progresso Semanal</div>
+        <div class="chart-bars" id="weekChart"></div>
+        <div style="display:flex;justify-content:space-around;margin-top:6px" id="weekLabels"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: CONFIGURAÇÕES ===== -->
+  <div class="screen" id="screen-config">
+    <div class="settings-wrap">
+      <div class="settings-section-title">👧 Crianças</div>
+      <div id="childrenList"></div>
+      <button class="btn-add" id="btnAddChild">+ Adicionar Criança</button>
+      <div class="settings-section-title">📋 Tarefas</div>
+      <div id="taskSettingList"></div>
+      <button class="btn-add" id="btnAddTask">+ Adicionar Tarefa</button>
+      <div style="height:16px"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="rotina" onclick="switchScreen('rotina',this)">
+      <span class="nav-icon">🏠</span>Rotina
+    </button>
+    <button class="nav-btn" data-screen="calendario" onclick="switchScreen('calendario',this)">
+      <span class="nav-icon">📅</span>Calendário
+    </button>
+    <button class="nav-btn" data-screen="conquistas" onclick="switchScreen('conquistas',this)">
+      <span class="nav-icon">⭐</span>Conquistas
+    </button>
+    <button class="nav-btn" data-screen="config" onclick="switchScreen('config',this)">
+      <span class="nav-icon">⚙️</span>Config
+    </button>
+  </nav>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div id="celebration">
+  <div class="celebration-content">
+    <span class="celebration-emoji">🎉</span>
+    <div class="celebration-title">Parabéns! ❄️</div>
+    <div class="celebration-subtitle">Você completou todas as tarefas do dia!<br>+3 estrelinhas conquistadas! ⭐⭐⭐</div>
+    <button class="btn-primary" onclick="closeCelebration()">Uhuuu! 🎊</button>
+  </div>
+</div>
+
+<!-- MODAL EVENT -->
+<div class="modal-backdrop" id="modalEvent" onclick="closeModal('modalEvent',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalEventTitle">Novo Evento ✨</div>
+    <input type="hidden" id="eventEditId">
+    <div class="form-group">
+      <label class="form-label">Título do Evento</label>
+      <input class="form-input" type="text" id="eventName" placeholder="Ex: Consulta médica, Festa...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emoji</label>
+      <div class="event-emoji-picker" id="eventEmojiPicker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input class="form-input" type="date" id="eventDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Horário</label>
+      <input class="form-input" type="time" id="eventTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor do Evento</label>
+      <div class="event-color-picker" id="eventColorPicker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observação (opcional)</label>
+      <input class="form-input" type="text" id="eventNote" placeholder="Ex: Levar documento, Comprar presente...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('modalEvent')">Cancelar</button>
+      <button class="btn-modal-delete" id="btnDeleteEvent" style="display:none" onclick="deleteEvent()">🗑️</button>
+      <button class="btn-modal-save" onclick="saveEvent()">Salvar ✨</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalChild" onclick="closeModal('modalChild',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalChildTitle">Nova Criança</div>
+    <input type="hidden" id="childEditId">
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input class="form-input" type="text" id="childName" placeholder="Ex: Laura">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Avatar</label>
+      <div class="avatar-picker" id="avatarPicker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor</label>
+      <div class="color-picker" id="colorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('modalChild')">Cancelar</button>
+      <button class="btn-modal-delete" id="btnDeleteChild" style="display:none" onclick="deleteChild()">🗑️</button>
+      <button class="btn-modal-save" onclick="saveChild()">Salvar ✨</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TASK -->
+<div class="modal-backdrop" id="modalTask" onclick="closeModal('modalTask',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTaskTitle">Nova Tarefa</div>
+    <input type="hidden" id="taskEditId">
+    <div class="form-group">
+      <label class="form-label">Nome da Tarefa</label>
+      <input class="form-input" type="text" id="taskName" placeholder="Ex: Escovar os dentes">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emoji / Ícone</label>
+      <div class="emoji-picker" id="emojiPicker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Horário</label>
+      <input class="form-input" type="time" id="taskTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Período</label>
+      <select class="form-input" id="taskPeriod">
+        <option value="manha">🌅 Manhã</option>
+        <option value="tarde">☀️ Tarde</option>
+        <option value="noite">🌙 Noite</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo de Dia</label>
+      <select class="form-input" id="taskDayType">
+        <option value="semana">Dias da Semana</option>
+        <option value="fds">Fim de Semana</option>
+        <option value="todos">Todos os Dias</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('modalTask')">Cancelar</button>
+      <button class="btn-modal-delete" id="btnDeleteTask" style="display:none" onclick="deleteTask()">🗑️</button>
+      <button class="btn-modal-save" onclick="saveTask()">Salvar ✨</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================
+// DATA & STATE
+// ============================
+const AVATARS = ['🧒','👧','🧑','👱‍♀️','👸','🧚‍♀️','🦋','🌸'];
+const COLORS  = ['#4fc3f7','#f48fb1','#a5d6a7','#ffcc80','#ce93d8','#80cbc4','#ef9a9a','#fff176'];
+const EMOJIS  = ['🦷','🛁','🍳','🥞','📚','🎒','👟','🧸','🎨','🏃‍♀️','🍽️','💤','🧴','🧹','🌟','🎵','📖','🥛','🍎','🧃'];
+const PERIODS = {manha:{label:'🌅 Manhã',order:0},tarde:{label:'☀️ Tarde',order:1},noite:{label:'🌙 Noite',order:2}};
+const BADGES_DEF = [
+  {id:'sven',  emoji:'🦌', name:'Sven',   desc:'1 dia completo',  need:1},
+  {id:'olaf',  emoji:'⛄', name:'Olaf',   desc:'3 dias completos', need:3},
+  {id:'kristoff',emoji:'🏔️',name:'Kristoff',desc:'7 dias',        need:7},
+  {id:'anna',  emoji:'👸', name:'Anna',   desc:'14 dias',          need:14},
+  {id:'elsa',  emoji:'❄️', name:'Elsa',   desc:'30 dias!',         need:30},
+  {id:'castelo',emoji:'🏰', name:'Arendelle',desc:'50 dias!',      need:50},
+];
+
+const DEFAULT_TASKS = [
+  {id:'t1', name:'Acordar e espreguiçar', emoji:'🌟', time:'07:00', period:'manha', dayType:'todos'},
+  {id:'t2', name:'Escovar os dentes',      emoji:'🦷', time:'07:15', period:'manha', dayType:'todos'},
+  {id:'t3', name:'Tomar banho',            emoji:'🛁', time:'07:30', period:'manha', dayType:'todos'},
+  {id:'t4', name:'Tomar café da manhã',    emoji:'🥞', time:'08:00', period:'manha', dayType:'todos'},
+  {id:'t5', name:'Arrumar a mochila',      emoji:'🎒', time:'08:15', period:'manha', dayType:'semana'},
+  {id:'t6', name:'Almoçar',                emoji:'🍽️', time:'12:00', period:'tarde', dayType:'todos'},
+  {id:'t7', name:'Hora de brincar',        emoji:'🎨', time:'14:00', period:'tarde', dayType:'todos'},
+  {id:'t8', name:'Lição de casa',          emoji:'📚', time:'15:00', period:'tarde', dayType:'semana'},
+  {id:'t9', name:'Jantar',                 emoji:'🍳', time:'19:00', period:'noite', dayType:'todos'},
+  {id:'t10',name:'Escovar dentes (noite)', emoji:'🦷', time:'20:00', period:'noite', dayType:'todos'},
+  {id:'t11',name:'Hora de dormir',         emoji:'💤', time:'20:30', period:'noite', dayType:'todos'},
+];
+
+function loadState() {
+  const defaults = {
+    children: [{id:'c1', name:'Laura', avatar:'👧', color:'#4fc3f7'}],
+    tasks: DEFAULT_TASKS,
+    records: {},
+    stars: {},
+    completedDays: {},
+    events: {}
+  };
+  try {
+    const saved = localStorage.getItem('frozenPWA_v2');
+    if (!saved) return defaults;
+    const parsed = JSON.parse(saved);
+    // Garantir que todos os campos existam (compatibilidade com versões anteriores)
+    if (!parsed.records)       parsed.records       = {};
+    if (!parsed.stars)         parsed.stars         = {};
+    if (!parsed.completedDays) parsed.completedDays = {};
+    if (!parsed.events)        parsed.events        = {};
+    if (!Array.isArray(parsed.children) || !parsed.children.length)
+      parsed.children = defaults.children;
+    if (!Array.isArray(parsed.tasks))
+      parsed.tasks = DEFAULT_TASKS;
+    return parsed;
+  } catch(e) {
+    console.warn('frozenPWA: erro ao carregar estado, usando padrão', e);
+    return defaults;
+  }
+}
+
+let state = loadState();
+
+function saveState() { localStorage.setItem('frozenPWA_v2', JSON.stringify(state)); }
+
+let currentChild = state.children[0]?.id || null;
+let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
+let selectedDate = new Date().toISOString().slice(0,10);  // Currently viewed date
+let mpMonth = new Date().getMonth(), mpYear = new Date().getFullYear();
+let selectedEmoji = EMOJIS[0], selectedAvatar = AVATARS[1], selectedColor = COLORS[0];
+let selectedEventEmoji = '📌', selectedEventColor = '#ffd700';
+
+const EVENT_EMOJIS = ['📌','🎉','🏥','🎂','🏊','🎭','✈️','🛒','🏫','⚽','🎵','💉','🦷','🎁','🍕','📚','🏖️','🎠','🌺','🎪'];
+const EVENT_COLORS = ['#ffd700','#4fc3f7','#f48fb1','#a5d6a7','#ffcc80','#ce93d8','#80cbc4','#ef9a9a','#90caf9','#ffe082'];
+
+// ============================
+// SNOWFALL
+// ============================
+const canvas = document.getElementById('snowCanvas');
+const ctx = canvas.getContext('2d');
+let flakes = [];
+
+function initSnow() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  flakes = Array.from({length:60}, () => ({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    r: Math.random()*3+1, speed: Math.random()*0.8+0.3,
+    wind: Math.random()*0.4-0.2, alpha: Math.random()*0.6+0.2
+  }));
+}
+
+function animateSnow() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  flakes.forEach(f => {
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${f.alpha})`;
+    ctx.fill();
+    f.y += f.speed; f.x += f.wind;
+    if (f.y > canvas.height) { f.y = -4; f.x = Math.random()*canvas.width; }
+    if (f.x > canvas.width) f.x = 0;
+    if (f.x < 0) f.x = canvas.width;
+  });
+  requestAnimationFrame(animateSnow);
+}
+
+window.addEventListener('resize', initSnow);
+initSnow(); animateSnow();
+
+// ============================
+// UTILS
+// ============================
+function todayKey() { return new Date().toISOString().slice(0,10); }
+function uid() { return '_'+Math.random().toString(36).slice(2,9); }
+
+function getTodayType() {
+  const d = new Date().getDay();
+  return (d===0||d===6) ? 'fds' : 'semana';
+}
+
+function getTasksForDate(dateStr) {
+  const d = new Date(dateStr+'T12:00:00');
+  const isWeekend = (d.getDay()===0||d.getDay()===6);
+  return state.tasks.filter(t =>
+    t.dayType==='todos' || (t.dayType==='semana'&&!isWeekend) || (t.dayType==='fds'&&isWeekend)
+  );
+}
+
+function getRecord(childId, dateStr) {
+  if (!childId || !dateStr) return {};
+  if (!state.records) state.records = {};
+  const key = `${childId}_${dateStr}`;
+  if (!state.records[key]) state.records[key] = {};
+  return state.records[key];
+}
+
+function updateDate() {
+  const opts = {weekday:'long',day:'2-digit',month:'short'};
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR',opts);
+}
+
+// ============================
+// SCREEN NAVIGATION
+// ============================
+function switchScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(name==='rotina') renderRoutine();
+  if(name==='calendario') renderCalendar();
+  if(name==='conquistas') renderAchievements();
+  if(name==='config') renderConfig();
+}
+
+// ============================
+// CHILD SELECTOR
+// ============================
+function renderChildSelector() {
+  const el = document.getElementById('childSelector');
+  el.innerHTML = state.children.map(c => `
+    <button class="child-btn ${c.id===currentChild?'active':''}" onclick="selectChild('${c.id}')"
+      style="${c.id===currentChild?'border-color:'+c.color+';box-shadow:0 0 12px '+c.color+'44':''}">
+      <span class="avatar">${c.avatar}</span>
+      <span class="name">${c.name}</span>
+    </button>
+  `).join('');
+  document.getElementById('headerTitle').textContent = 'Rotina de ' + (state.children.find(c=>c.id===currentChild)?.name||'...');
+}
+
+function selectChild(id) {
+  currentChild = id;
+  renderChildSelector();
+  renderTaskList();
+}
+
+// ============================
+// ROUTINE
+// ============================
+function renderRoutine() {
+  renderChildSelector();
+  renderDateStrip();
+  renderTaskList();
+}
+
+function renderTaskList() {
+  const today = selectedDate;
+  const tasks = getTasksForDate(today);
+  const record = getRecord(currentChild, today);
+  const done = tasks.filter(t => record[t.id]).length;
+  const total = tasks.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = `${done}/${total}`;
+
+  const grouped = {};
+  tasks.forEach(t => {
+    if(!grouped[t.period]) grouped[t.period] = [];
+    grouped[t.period].push(t);
+  });
+
+  const order = ['manha','tarde','noite'];
+  let html = '';
+  order.forEach(p => {
+    if(!grouped[p]?.length) return;
+    html += `<div class="period-title">${PERIODS[p].label}</div>`;
+    grouped[p].forEach(t => {
+      const isDone = !!record[t.id];
+      html += `
+        <div class="task-card ${isDone?'done':''}" onclick="toggleTask('${t.id}',event)" data-id="${t.id}">
+          <span class="task-emoji">${t.emoji}</span>
+          <div class="task-info">
+            <div class="task-name">${t.name}</div>
+            <div class="task-time">⏰ ${t.time}</div>
+          </div>
+          <div class="task-check">${isDone?'✓':''}</div>
+        </div>`;
+    });
+  });
+
+  if(!html) html = `<div class="empty-state"><span class="empty-emoji">❄️</span><p>Nenhuma tarefa para hoje!<br>Adicione tarefas nas configurações.</p></div>`;
+  document.getElementById('taskList').innerHTML = html;
+}
+
+function toggleTask(taskId, event) {
+  const today = selectedDate;
+  const tasks = getTasksForDate(today);
+  const record = getRecord(currentChild, today);
+  record[taskId] = !record[taskId];
+  saveState();
+
+  if(record[taskId]) spawnSnow(event);
+
+  const done = tasks.filter(t => record[t.id]).length;
+  if(done === tasks.length && tasks.length > 0) {
+    setTimeout(() => showCelebration(), 400);
+    awardStars(currentChild, 3);
+    markDayComplete(currentChild, today);
+  }
+
+  renderTaskList();
+}
+
+function spawnSnow(event) {
+  const x = event?.clientX || window.innerWidth/2;
+  const y = event?.clientY || window.innerHeight/2;
+  for(let i=0;i<8;i++) {
+    const el = document.createElement('div');
+    el.className = 'snow-burst';
+    el.textContent = ['❄️','⭐','✨','🌟','💎'][Math.floor(Math.random()*5)];
+    el.style.cssText = `left:${x}px;top:${y}px;--dx:${(Math.random()-0.5)*120}px;--dy:${-(Math.random()*100+40)}px;animation-delay:${i*0.05}s`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+}
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  const today = selectedDate;
+  const key = `${currentChild}_${today}`;
+  state.records[key] = {};
+  saveState();
+  renderTaskList();
+});
+
+// ============================
+// CELEBRATION
+// ============================
+function showCelebration() {
+  document.getElementById('celebration').classList.add('show');
+}
+function closeCelebration() {
+  document.getElementById('celebration').classList.remove('show');
+}
+
+function awardStars(childId, n) {
+  if(!state.stars[childId]) state.stars[childId] = 0;
+  state.stars[childId] += n;
+  saveState();
+}
+
+function markDayComplete(childId, dateStr) {
+  if(!state.completedDays[childId]) state.completedDays[childId] = {};
+  state.completedDays[childId][dateStr] = true;
+  saveState();
+}
+
+// ============================
+// CALENDAR
+// ============================
+function renderCalendar() {
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('calTitle').textContent = `${months[calMonth]} ${calYear}`;
+
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+
+  let html = '';
+  for(let i=0;i<first;i++) html += '<div class="cal-day"></div>';
+  for(let d=1;d<=days;d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getDate()===d && today.getMonth()===calMonth && today.getFullYear()===calYear;
+    const tasks = getTasksForDate(dateStr);
+    const record = getRecord(currentChild, dateStr);
+    const done = tasks.filter(t => record[t.id]).length;
+    const eventsOnDay = getEventsForDate(dateStr);
+    let cls = 'cal-day';
+    if(isToday) cls += ' today';
+    if(done > 0 && done < tasks.length) cls += ' partial-done has-tasks';
+    if(done === tasks.length && tasks.length > 0) cls += ' full-done has-tasks';
+    const eventDot = eventsOnDay.length ? '<span class="event-dot"></span>' : '';
+    html += `<div class="${cls}" onclick="showCalDetail('${dateStr}')">${d}${eventDot}</div>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+  document.getElementById('calDetail').style.display = 'none';
+}
+
+function showCalDetail(dateStr) {
+  const tasks = getTasksForDate(dateStr);
+  const record = getRecord(currentChild, dateStr);
+  const d = new Date(dateStr+'T12:00:00');
+  const label = d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+  const events = getEventsForDate(dateStr);
+
+  document.getElementById('calDetailTitle').textContent = '📅 '+label;
+
+  const tasksHtml = tasks.length
+    ? tasks.map(t => `<div class="cal-task-item"><span class="cal-task-status">${record[t.id]?'✅':'⬜'}</span><span class="cal-task-label">${t.emoji} ${t.name}</span></div>`).join('')
+    : '<p style="color:#5a8db0;font-size:13px;padding:4px 0">Nenhuma tarefa este dia.</p>';
+
+  const eventsHtml = events.length
+    ? events.map(ev => `
+        <div class="event-item" onclick="openEventModal('${ev.id}')">
+          <span class="event-dot-color" style="background:${ev.color}"></span>
+          <span class="event-item-emoji">${ev.emoji}</span>
+          <div class="event-item-info">
+            <div class="event-item-title">${ev.name}</div>
+            <div class="event-item-time">⏰ ${ev.time}${ev.note ? ' · '+ev.note : ''}</div>
+          </div>
+          <span style="font-size:13px;color:#5a8db0">✏️</span>
+        </div>`).join('')
+    : '';
+
+  document.getElementById('calDetailList').innerHTML = `
+    ${tasksHtml}
+    <div class="cal-detail-section">
+      <div class="cal-detail-section-title">✨ Eventos</div>
+      ${eventsHtml}
+      <button class="btn-add-event" onclick="openEventModal(null,'${dateStr}')">+ Adicionar Evento</button>
+    </div>`;
+
+  document.getElementById('calDetail').style.display = 'block';
+}
+
+document.getElementById('calPrev').addEventListener('click', () => {
+  calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar();
+});
+document.getElementById('calNext').addEventListener('click', () => {
+  calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar();
+});
+
+// ============================
+// ACHIEVEMENTS
+// ============================
+function renderAchievements() {
+  const stars = state.stars[currentChild] || 0;
+  const completed = Object.keys(state.completedDays[currentChild]||{}).length;
+  document.getElementById('starsCount').textContent = '⭐ '+stars;
+
+  document.getElementById('badgesGrid').innerHTML = BADGES_DEF.map(b => {
+    const unlocked = completed >= b.need;
+    return `<div class="badge-card ${unlocked?'unlocked':'locked'}">
+      <span class="badge-emoji">${b.emoji}</span>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${b.desc}</div>
+    </div>`;
+  }).join('');
+
+  // Weekly chart
+  const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const today = new Date();
+  const weekData = [];
+  for(let i=6;i>=0;i--) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const dateStr = d.toISOString().slice(0,10);
+    const tasks = getTasksForDate(dateStr);
+    const record = getRecord(currentChild, dateStr);
+    const done = tasks.length ? tasks.filter(t=>record[t.id]).length/tasks.length : 0;
+    weekData.push({day: days[d.getDay()], pct: done});
+  }
+  const maxPct = Math.max(...weekData.map(w=>w.pct), 0.01);
+  document.getElementById('weekChart').innerHTML = weekData.map(w => {
+    const h = Math.round((w.pct/maxPct)*72);
+    return `<div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}px;opacity:${0.4+w.pct*0.6}"></div></div>`;
+  }).join('');
+  document.getElementById('weekLabels').innerHTML = weekData.map(w =>
+    `<span class="chart-bar-label">${w.day}</span>`
+  ).join('');
+}
+
+// ============================
+// CONFIG
+// ============================
+function renderConfig() {
+  document.getElementById('childrenList').innerHTML = state.children.map(c => `
+    <div class="child-setting-card glass">
+      <span class="child-setting-avatar">${c.avatar}</span>
+      <div class="child-setting-info">
+        <div class="child-setting-name">${c.name}</div>
+        <div class="child-setting-color" style="color:${c.color}">●</div>
+      </div>
+      <button class="icon-btn" onclick="openChildModal('${c.id}')">✏️</button>
+    </div>
+  `).join('');
+
+  document.getElementById('taskSettingList').innerHTML = state.tasks.map(t => `
+    <div class="task-setting-card">
+      <span class="task-setting-emoji">${t.emoji}</span>
+      <div class="task-setting-info">
+        <div class="task-setting-name">${t.name}</div>
+        <div class="task-setting-meta">${PERIODS[t.period]?.label||t.period} · ${t.time} · ${t.dayType}</div>
+      </div>
+      <button class="icon-btn-sm" onclick="openTaskModal('${t.id}')">✏️</button>
+    </div>
+  `).join('');
+}
+
+// ============================
+// MODALS
+// ============================
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id, event) {
+  if(event && event.target !== document.getElementById(id)) return;
+  document.getElementById(id).classList.remove('show');
+}
+
+// Child modal
+function openChildModal(childId) {
+  const isNew = !childId;
+  document.getElementById('modalChildTitle').textContent = isNew ? 'Nova Criança ❄️' : 'Editar Criança';
+  document.getElementById('childEditId').value = childId || '';
+  document.getElementById('btnDeleteChild').style.display = isNew ? 'none' : 'block';
+
+  const child = state.children.find(c=>c.id===childId) || {};
+  document.getElementById('childName').value = child.name || '';
+  selectedAvatar = child.avatar || AVATARS[1];
+  selectedColor = child.color || COLORS[0];
+
+  document.getElementById('avatarPicker').innerHTML = AVATARS.map(a =>
+    `<span class="avatar-opt ${a===selectedAvatar?'selected':''}" onclick="selectAvatar('${a}')">${a}</span>`
+  ).join('');
+  document.getElementById('colorPicker').innerHTML = COLORS.map(c =>
+    `<span class="color-opt ${c===selectedColor?'selected':''}" style="background:${c}" onclick="selectColor('${c}')"></span>`
+  ).join('');
+
+  openModal('modalChild');
+}
+
+function selectAvatar(a) {
+  selectedAvatar = a;
+  document.querySelectorAll('.avatar-opt').forEach(el => el.classList.toggle('selected', el.textContent===a));
+}
+function selectColor(c) {
+  selectedColor = c;
+  document.querySelectorAll('.color-opt').forEach(el => el.classList.toggle('selected', el.style.background===c));
+}
+
+function saveChild() {
+  const id = document.getElementById('childEditId').value;
+  const name = document.getElementById('childName').value.trim();
+  if(!name) return;
+  if(id) {
+    const c = state.children.find(c=>c.id===id);
+    if(c) { c.name=name; c.avatar=selectedAvatar; c.color=selectedColor; }
+  } else {
+    state.children.push({id:uid(), name, avatar:selectedAvatar, color:selectedColor});
+  }
+  saveState(); closeModal('modalChild'); renderConfig(); renderChildSelector();
+}
+
+function deleteChild() {
+  const id = document.getElementById('childEditId').value;
+  if(state.children.length<=1) return alert('Deve haver ao menos uma criança.');
+  state.children = state.children.filter(c=>c.id!==id);
+  if(currentChild===id) currentChild = state.children[0].id;
+  saveState(); closeModal('modalChild'); renderConfig(); renderChildSelector();
+}
+
+document.getElementById('btnAddChild').addEventListener('click', () => openChildModal(null));
+
+// Task modal
+function openTaskModal(taskId) {
+  const isNew = !taskId;
+  document.getElementById('modalTaskTitle').textContent = isNew ? 'Nova Tarefa ❄️' : 'Editar Tarefa';
+  document.getElementById('taskEditId').value = taskId || '';
+  document.getElementById('btnDeleteTask').style.display = isNew ? 'none' : 'block';
+
+  const task = state.tasks.find(t=>t.id===taskId) || {};
+  document.getElementById('taskName').value = task.name || '';
+  document.getElementById('taskTime').value = task.time || '08:00';
+  document.getElementById('taskPeriod').value = task.period || 'manha';
+  document.getElementById('taskDayType').value = task.dayType || 'todos';
+  selectedEmoji = task.emoji || EMOJIS[0];
+
+  document.getElementById('emojiPicker').innerHTML = EMOJIS.map(e =>
+    `<span class="emoji-opt ${e===selectedEmoji?'selected':''}" onclick="selectEmoji('${e}')">${e}</span>`
+  ).join('');
+
+  openModal('modalTask');
+}
+
+function selectEmoji(e) {
+  selectedEmoji = e;
+  document.querySelectorAll('.emoji-opt').forEach(el => el.classList.toggle('selected', el.textContent===e));
+}
+
+function saveTask() {
+  const id = document.getElementById('taskEditId').value;
+  const name = document.getElementById('taskName').value.trim();
+  if(!name) return;
+  const data = {
+    name, emoji:selectedEmoji,
+    time: document.getElementById('taskTime').value,
+    period: document.getElementById('taskPeriod').value,
+    dayType: document.getElementById('taskDayType').value
+  };
+  if(id) { const t=state.tasks.find(t=>t.id===id); if(t) Object.assign(t,data); }
+  else state.tasks.push({id:uid(),...data});
+  saveState(); closeModal('modalTask'); renderConfig(); renderTaskList();
+}
+
+function deleteTask() {
+  const id = document.getElementById('taskEditId').value;
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  saveState(); closeModal('modalTask'); renderConfig(); renderTaskList();
+}
+
+document.getElementById('btnAddTask').addEventListener('click', () => openTaskModal(null));
+
+// ============================
+// DATE STRIP (Routine Screen)
+// ============================
+function renderDateStrip() {
+  // Show 14 days centered around selectedDate, scrolling to selected
+  const sel = new Date(selectedDate + 'T12:00:00');
+  const today = todayKey();
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const wds = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  // Build 30-day window: 10 before selected, 19 after
+  const dates = [];
+  for(let i = -10; i <= 19; i++) {
+    const d = new Date(sel); d.setDate(sel.getDate() + i);
+    dates.push(d);
+  }
+
+  document.getElementById('dsMonthLabel').textContent =
+    months[sel.getMonth()] + ' ' + sel.getFullYear();
+
+  const strip = document.getElementById('dateStrip');
+  strip.innerHTML = dates.map((d, idx) => {
+    const ds = d.toISOString().slice(0,10);
+    const isSelected = ds === selectedDate;
+    const isToday = ds === today;
+    const tasks = getTasksForDate(ds);
+    const record = getRecord(currentChild, ds);
+    const hasDone = tasks.some(t => record[t.id]);
+    return `<div class="date-day-btn ${isSelected?'active':''} ${isToday&&!isSelected?'today-dot':''}"
+      onclick="selectDate('${ds}')" data-ds="${ds}">
+      <span class="ddb-wd">${wds[d.getDay()]}</span>
+      <span class="ddb-num">${d.getDate()}</span>
+      ${hasDone ? '<span class="ddb-dot"></span>' : '<span style="height:5px"></span>'}
+    </div>`;
+  }).join('');
+
+  // Scroll selected into view
+  setTimeout(() => {
+    const active = strip.querySelector('.date-day-btn.active');
+    if(active) active.scrollIntoView({inline:'center', behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function selectDate(ds) {
+  selectedDate = ds;
+  const sel = new Date(ds + 'T12:00:00');
+  mpMonth = sel.getMonth();
+  mpYear = sel.getFullYear();
+  renderDateStrip();
+  renderTaskList();
+}
+
+function jumpToToday() {
+  selectedDate = todayKey();
+  mpMonth = new Date().getMonth();
+  mpYear = new Date().getFullYear();
+  renderDateStrip();
+  renderTaskList();
+}
+
+// ============================
+// MONTH PICKER
+// ============================
+function openMonthPicker() {
+  renderMonthPicker();
+  document.getElementById('monthPickerBackdrop').classList.add('show');
+}
+function closeMonthPicker(event) {
+  if(event && event.target !== document.getElementById('monthPickerBackdrop')) return;
+  document.getElementById('monthPickerBackdrop').classList.remove('show');
+}
+
+function renderMonthPicker() {
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('mpTitle').textContent = months[mpMonth] + ' ' + mpYear;
+
+  const first = new Date(mpYear, mpMonth, 1).getDay();
+  const days  = new Date(mpYear, mpMonth+1, 0).getDate();
+  const today = todayKey();
+
+  let html = '';
+  for(let i=0;i<first;i++) html += '<div class="mp-day"></div>';
+  for(let d=1;d<=days;d++) {
+    const ds = `${mpYear}-${String(mpMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isSel   = ds === selectedDate;
+    const isToday = ds === today;
+    const tasks   = getTasksForDate(ds);
+    const record  = getRecord(currentChild, ds);
+    const hasDone = tasks.some(t => record[t.id]);
+    let cls = 'mp-day';
+    if(isSel)   cls += ' mp-selected';
+    else if(isToday) cls += ' mp-today';
+    if(hasDone && !isSel) cls += ' mp-has-tasks';
+    html += `<div class="${cls}" onclick="pickDay('${ds}')">${d}</div>`;
+  }
+  document.getElementById('mpDays').innerHTML = html;
+}
+
+function pickDay(ds) {
+  selectedDate = ds;
+  const d = new Date(ds + 'T12:00:00');
+  mpMonth = d.getMonth(); mpYear = d.getFullYear();
+  document.getElementById('monthPickerBackdrop').classList.remove('show');
+  renderDateStrip();
+  renderTaskList();
+}
+
+document.getElementById('mpPrev').addEventListener('click', () => {
+  mpMonth--; if(mpMonth<0){mpMonth=11;mpYear--;} renderMonthPicker();
+});
+document.getElementById('mpNext').addEventListener('click', () => {
+  mpMonth++; if(mpMonth>11){mpMonth=0;mpYear++;} renderMonthPicker();
+});
+
+// ============================
+// EVENTS
+// ============================
+function getEventsForDate(dateStr) {
+  return (state.events[dateStr] || []).slice().sort((a,b) => a.time.localeCompare(b.time));
+}
+
+function openEventModal(eventId, prefillDate) {
+  const isNew = !eventId;
+  document.getElementById('modalEventTitle').textContent = isNew ? 'Novo Evento ✨' : 'Editar Evento';
+  document.getElementById('eventEditId').value = eventId || '';
+  document.getElementById('btnDeleteEvent').style.display = isNew ? 'none' : 'block';
+
+  let ev = {};
+  if(!isNew) {
+    // search all dates
+    for(const date of Object.keys(state.events)) {
+      const found = state.events[date].find(e=>e.id===eventId);
+      if(found) { ev = found; break; }
+    }
+  }
+
+  document.getElementById('eventName').value = ev.name || '';
+  document.getElementById('eventDate').value = ev.date || prefillDate || todayKey();
+  document.getElementById('eventTime').value = ev.time || '09:00';
+  document.getElementById('eventNote').value = ev.note || '';
+  selectedEventEmoji = ev.emoji || '📌';
+  selectedEventColor = ev.color || '#ffd700';
+
+  document.getElementById('eventEmojiPicker').innerHTML = EVENT_EMOJIS.map(e =>
+    `<span class="event-emoji-opt ${e===selectedEventEmoji?'selected':''}" onclick="selectEventEmoji('${e}')">${e}</span>`
+  ).join('');
+
+  document.getElementById('eventColorPicker').innerHTML = EVENT_COLORS.map(c =>
+    `<span class="event-color-opt ${c===selectedEventColor?'selected':''}" style="background:${c}" onclick="selectEventColor('${c}')"></span>`
+  ).join('');
+
+  openModal('modalEvent');
+}
+
+function selectEventEmoji(e) {
+  selectedEventEmoji = e;
+  document.querySelectorAll('.event-emoji-opt').forEach(el => el.classList.toggle('selected', el.textContent===e));
+}
+function selectEventColor(c) {
+  selectedEventColor = c;
+  document.querySelectorAll('.event-color-opt').forEach(el => el.classList.toggle('selected', el.style.background===c));
+}
+
+function saveEvent() {
+  const name = document.getElementById('eventName').value.trim();
+  const date = document.getElementById('eventDate').value;
+  if(!name || !date) return;
+
+  const editId = document.getElementById('eventEditId').value;
+  const data = {
+    id: editId || uid(),
+    name,
+    date,
+    time: document.getElementById('eventTime').value,
+    note: document.getElementById('eventNote').value.trim(),
+    emoji: selectedEventEmoji,
+    color: selectedEventColor
+  };
+
+  // If editing, remove old entry first
+  if(editId) {
+    for(const d of Object.keys(state.events)) {
+      state.events[d] = state.events[d].filter(e => e.id !== editId);
+      if(!state.events[d].length) delete state.events[d];
+    }
+  }
+
+  if(!state.events[date]) state.events[date] = [];
+  state.events[date].push(data);
+  saveState();
+  closeModal('modalEvent');
+
+  // refresh calendar + detail panel for that date
+  renderCalendar();
+  showCalDetail(date);
+}
+
+function deleteEvent() {
+  const editId = document.getElementById('eventEditId').value;
+  let deletedDate = null;
+  for(const d of Object.keys(state.events)) {
+    const before = state.events[d].length;
+    state.events[d] = state.events[d].filter(e => e.id !== editId);
+    if(state.events[d].length < before) deletedDate = d;
+    if(!state.events[d].length) delete state.events[d];
+  }
+  saveState();
+  closeModal('modalEvent');
+  renderCalendar();
+  if(deletedDate) showCalDetail(deletedDate);
+}
+
+// ============================
+// INIT
+// ============================
+updateDate();
+renderRoutine();
+
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
